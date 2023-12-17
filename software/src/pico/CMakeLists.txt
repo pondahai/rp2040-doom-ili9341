@@ -54,7 +54,7 @@ endif()
 target_compile_definitions(common_pico INTERFACE
     PICO_SCANVIDEO_COLOR_PIN_BASE=30 
     PICO_SCANVIDEO_SYNC_PIN_BASE=30
-    PICO_AUDIO_I2S_DATA_PIN=30
+    PICO_AUDIO_I2S_DATA_PIN=7
     PICO_AUDIO_I2S_CLOCK_PIN_BASE=30
 )
 
@@ -66,8 +66,8 @@ set(SD_SCK "10" CACHE STRING "Specify de Clock GPIO pin for the SD card")
 set(SD_MOSI "11" CACHE STRING "Select the Master Out Slave In GPIO pin for the SD card")
 set(SD_MISO "12" CACHE STRING "Select the Master In Slave Out GPIO pin for the SD card")
 
-set(LCD_CONTROLLER "ILI9341" CACHE STRING "Select the LCD controller type")
-#set(LCD_CONTROLLER "ST7789" CACHE STRING "Select the LCD controller type")
+#set(LCD_CONTROLLER "ILI9341" CACHE STRING "Select the LCD controller type")
+set(LCD_CONTROLLER "ST7789" CACHE STRING "Select the LCD controller type")
 
 set(LCD_SPI "spi0")
 set(LCD_DC "20")
@@ -108,6 +108,14 @@ target_compile_definitions(common_pico INTERFACE
     DISPLAY_PIN_MISO=${LCD_MISO}
 )
 
+    #target_link_libraries(common_pico INTERFACE  hardware_pwm)
+    #target_link_libraries(common_pico INTERFACE  pico_audio_pwm)
+target_compile_definitions(common_pico INTERFACE
+        #PICO_AUDIO_PWM_PIO=7
+        #USE_CUSTOM_AUDIO_PWM=1
+        USE_AUDIO_I2S=1
+        #USE_AUDIO_PWM=1
+)
 if(LCD_CONTROLLER STREQUAL "ILI9341")
     add_compile_definitions(ILI9341)
     target_compile_definitions(common_pico INTERFACE
@@ -119,4 +127,5 @@ elseif(LCD_CONTROLLER STREQUAL "ST7789")
         ST7789=1
         )
 endif()
+
 

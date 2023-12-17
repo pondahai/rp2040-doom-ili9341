@@ -228,8 +228,8 @@ const scanvideo_timing_t vga_timing_640x1000_60_default = // same as 1280x1024_6
  */
 const scanvideo_timing_t vga_timing_320x240_60_lcd =
         {
+            #ifdef ILI9341
                 .clock_freq = 108000000 / 8,
-
                 .h_active = 1280 / 2,
                 .v_active = 1000 / 1,
 
@@ -242,6 +242,22 @@ const scanvideo_timing_t vga_timing_320x240_60_lcd =
                 .v_pulse = 3,
                 .v_total = 1066 / 1,
                 .v_sync_polarity = 0,
+            #endif
+            #ifdef ST7789
+                .clock_freq = 108000000 / 8,
+                .h_active = 1280 / 2 ,
+                .v_active = 1000 / 1 ,
+
+                .h_front_porch = 48 / 2 ,
+                .h_pulse = 112 / 2 ,
+                .h_total = 1688 / 2 ,
+                .h_sync_polarity = 0,
+
+                .v_front_porch = 1 + 24 - 12,
+                .v_pulse = 3,
+                .v_total = 1066 / 1 ,
+                .v_sync_polarity = 0,
+            #endif
 
                 // .enable_clock = 0,
                 // .clock_polarity = 0,
@@ -256,14 +272,28 @@ const scanvideo_mode_t vga_mode_320x200 =
                 // .default_timing = &vga_timing_640x1000_60_default,
                 .pio_program = &video_doom_pio,
 #if PICO_ON_DEVICE
+                #ifdef ILI9341
                 .width = 320,
+                #endif
+                #ifdef ST7789
+                .width = 160,
+                #endif
 #else
                 .width = 640,
 #endif
-                .height = 200,
                 //dahai
+                #ifdef ILI9341
+                .height = 200,
+
                 .xscale = 2,
                 .yscale = 5,
+                #endif
+                #ifdef ST7789
+                .xscale = 2,
+                .yscale = 5,
+
+                .height = 200,
+                #endif
                 // .xscale = 2,
                 // .yscale = 5,
         };
@@ -1042,7 +1072,13 @@ void /*__scratch_x("scanlines")*/ fill_scanlines() {
         //dahai
         gpio_xor_mask(1<<LED_PIN);
             if(frame % 60 == 0){
+                #ifdef ILI9341
                 ili9341_infones_frame_timing_register_init();
+                #endif
+                #ifdef ST7789
+                st7789_infones_frame_timing_register_init();
+                #endif
+
             }
 
         }
@@ -1125,6 +1161,13 @@ void /*__scratch_x("scanlines")*/ fill_scanlines() {
         // dma_channel_set_read_addr(display_dma_channel, /*(uint8_t *)*/scanline_buffer, true);   
 #endif
 #ifdef ST7789
+        for(int i=0,j=2; j<SCREENWIDTH*2; i+=2,j+=4){
+           memcpy((uint8_t *)&(buffer->data[2])+i+0 , (uint8_t *)&(buffer->data[2])+j+0, sizeof(uint8_t));
+           memcpy((uint8_t *)&(buffer->data[2])+i+1 , (uint8_t *)&(buffer->data[2])+j+1, sizeof(uint8_t));
+        }
+        if(scanline%2 == 0){
+          spi_write_blocking(DISPLAY_SPI_PORT, (uint8_t *)&(buffer->data[2])+1, 1*SCREENWIDTH);
+        }
 #endif
 //dahai
         // *((io_rw_32 *) (PPB_BASE + M0PLUS_NVIC_ISPR_OFFSET)) = 1u << 31;
@@ -1347,6 +1390,14 @@ void display_init()
     uint8_t mode2 = DISPLAY_PIXEL_FORMAT;
     display_write_data(&mode2, 1);
 
+    display_write_command(DCS_WRITE_DISPLAY_BRIGHTNESS);
+    uint8_t brightness = 0xaa;
+    display_write_data(&brightness, 1);
+
+    // display_write_command(DCS_GAMMA_SET);
+    // uint8_t gamma = 0x2;
+    // display_write_data(&gamma, 1);
+
 #ifdef DISPLAY_INVERT
     display_write_command(DCS_ENTER_INVERT_MODE);
 
@@ -1429,7 +1480,8 @@ void st7789_infones_frame_timing_register_init()
 
 
 
-        display_set_address(0, 0, (SCREENWIDTH)/2, (MAIN_VIEWHEIGHT)/2);
+        // display_set_address(0, 0, (SCREENWIDTH)/2, (MAIN_VIEWHEIGHT)/2);
+        display_set_address(0, 10, (SCREENWIDTH)/2, 96+3+10);
 
 ////
         /*

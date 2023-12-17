@@ -136,6 +136,7 @@ enum {
     SDL_SCANCODE_GRAVE = 35,
     SDL_SCANCODE_TAB = 43,
     SDL_SCANCODE_KP_PLUS = 87,
+    SDL_SCANCODE_ESCAPE = 41,
 };
 
 // Translates the SDL key to a value of the type found in doomkeys.h
@@ -576,31 +577,41 @@ static int key_DN_old=1;
 static int key_LT_old=1;
 static int key_RT_old=1;
 
-
+    static int change_weapon_action;
     int get_key;
     get_key = ((gpio_get(PIN_A)==0)?0:1);
     if(get_key != key_A_old){
         key_A_old = get_key;
-        if (get_key==0) {      pico_key_down(SDL_SCANCODE_SPACE, 0, 0);}
-        else {                       pico_key_up(SDL_SCANCODE_SPACE, 0, 0);}
+        if (get_key==0) {      pico_key_down(SDL_SCANCODE_SPACE, 0, 0); pico_key_down(SDL_SCANCODE_LSHIFT, 0, 0); change_weapon_action = 1;}
+        else {                       pico_key_up(SDL_SCANCODE_SPACE, 0, 0); pico_key_up(SDL_SCANCODE_LSHIFT, 0, 0); change_weapon_action = 0;}
     }
     get_key = ((gpio_get(PIN_B)==0)?0:1);
     if(get_key != key_B_old){
         key_B_old = get_key;
-        if (get_key==0) {      pico_key_down(SDL_SCANCODE_RCTRL, 0, 0);}
-        else {                       pico_key_up(SDL_SCANCODE_RCTRL, 0, 0);}
+        if (get_key==0) {      pico_key_down(SDL_SCANCODE_RCTRL, 0, 0); }
+        else {                       pico_key_up(SDL_SCANCODE_RCTRL, 0, 0); }
     }
     get_key = ((gpio_get(PIN_ST)==0)?0:1);
     if(get_key != key_ST_old){
         key_ST_old = get_key;
-        if (get_key==0) {     pico_key_down(SDL_SCANCODE_RETURN, 0, 0);pico_key_down(SDL_SCANCODE_TAB, 0, 0);}
-        else {                       pico_key_up(SDL_SCANCODE_RETURN, 0, 0);pico_key_up(SDL_SCANCODE_TAB, 0, 0);}
+
+        if (get_key==0) {     
+            #if ST7789
+            if(change_weapon_action == 1)  { pico_key_down(SDL_SCANCODE_KP_PLUS, 0, 0); pico_key_down(SDL_SCANCODE_ESCAPE, 0, 0); }
+            else
+            #endif
+            {
+            pico_key_down(SDL_SCANCODE_RETURN, 0, 0); 
+            pico_key_down(SDL_SCANCODE_TAB, 0, 0);
+            }
+        }else {                       pico_key_up(SDL_SCANCODE_RETURN, 0, 0); pico_key_up(SDL_SCANCODE_TAB, 0, 0); pico_key_up(SDL_SCANCODE_KP_PLUS, 0, 0); pico_key_up(SDL_SCANCODE_ESCAPE, 0, 0);}
+
     }
     get_key = ((gpio_get(PIN_SL)==0)?0:1);
     if(get_key != key_SL_old){
         key_SL_old = get_key;
-        if (get_key==0) {     pico_key_down(SDL_SCANCODE_KP_PLUS, 0, 0);}
-        else {                       pico_key_up(SDL_SCANCODE_KP_PLUS, 0, 0);}
+        if (get_key==0) {     pico_key_down(SDL_SCANCODE_KP_PLUS, 0, 0); pico_key_down(SDL_SCANCODE_ESCAPE, 0, 0);}
+        else {                       pico_key_up(SDL_SCANCODE_KP_PLUS, 0, 0); pico_key_up(SDL_SCANCODE_ESCAPE, 0, 0);}
     }
     get_key = ((gpio_get(PIN_UP)==0)?0:1);
     if(get_key != key_UP_old){
