@@ -132,7 +132,8 @@ boolean screenvisible = true;
 
 boolean screensaver_mode = false;
 
-isb_int8_t usegamma = 0;
+// Set to 4 for maximum in-game gamma/brightness by default
+isb_int8_t usegamma = 4;
 
 // Joystick/gamepad hysteresis
 unsigned int joywait = 0;
@@ -1391,7 +1392,7 @@ void display_init()
     display_write_data(&mode2, 1);
 
     display_write_command(DCS_WRITE_DISPLAY_BRIGHTNESS);
-    uint8_t brightness = 0xaa;
+    uint8_t brightness = 0xff; // Increased hardware brightness from 0xaa to 0xff (Max)
     display_write_data(&brightness, 1);
 
     // display_write_command(DCS_GAMMA_SET);

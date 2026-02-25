@@ -32,6 +32,19 @@
 
 #include "doomtype.h"
 #include "i_picosound.h"
+
+// dahai: 設定 I2S PWM 的超取樣倍率 (Oversampling)。
+// 預設 4: 較佔用記憶體與 CPU (容易有爆音)，但解析度高(7-bit)。
+// 改為 2: 省記憶體與 CPU (大幅減少爆音)，解析度略低(6-bit)。防反悔機制，隨時可改回 4。
+#define I2S_OVERSAMPLING 2
+
+// 當使用 I2S_OVERSAMPLING 機制時定義對應的 AUDIO_BUFFER_SIZE (覆蓋下方的宣告)
+#if I2S_OVERSAMPLING == 4
+#define PICO_AUDIO_OVERSAMPLED_BUFFER_SIZE 512
+#else
+#define PICO_AUDIO_OVERSAMPLED_BUFFER_SIZE 1024
+#endif
+
 #if USE_AUDIO_I2S
 #include "pico/audio_i2s.h"
 #elif USE_AUDIO_PWM
@@ -43,7 +56,7 @@
 #include "hardware/pwm.h"
 #include "hardware/sync.h"
 #include "hardware/clocks.h"
-#define AUDIO_BUFFER_SIZE 1024
+#define AUDIO_BUFFER_SIZE 512
 #define AUDIO_MAX_SOURCES 6
 #define REPETITION_RATE 4
 static uint32_t single_sample = 0;
@@ -107,7 +120,7 @@ static struct audio_buffer_pool *producer_pool;
 static struct audio_format audio_format = {
         .format = AUDIO_BUFFER_FORMAT_PCM_S16,
         #if 1
-        .sample_freq = PICO_SOUND_SAMPLE_FREQ,
+        .sample_freq = PICO_SOUND_SAMPLE_FREQ * I2S_OVERSAMPLING,
         #endif
 
 #if USE_AUDIO_I2S
@@ -422,101 +435,17 @@ static void I_Pico_UpdateSound(void)
     //  we can either poll more frequently, or use IRQ but then we have to be careful with threading (both OPL and channels)
     // todo hopefully at least we can run the AI fast enough.
 #if 1 // AUDIO_I2S or AUDIO_PWM
-#if USE_AUDIO_I2S
-                    int32_t pwmtable[]={
-                        0x0101,
-                        0x0101,
-                        0x0303,
-                        0x0303,
-                        0x0707,
-                        0x0707,
-                        0x0707,
-                        0x0f0f,
-                        0x0f0f,
-                        0x1f1f,
-                        0x1f1f,
-                        0x3f3f,
-                        0x3f3f,
-                        0x7f7f,
-                        0x7f7f,
-                        0x7fff,
-                        0xffff,
-                        0x01010101,
-                        0x01010101,
-                        0x03030303,
-                        0x03030303,
-                        0x07070707,
-                        0x07070707,
-                        0x07070707,
-                        0x0f0f0f0f,
-                        0x0f0f0f0f,
-                        0x1f1f1f1f,
-                        0x1f1f1f1f,
-                        0x3f3f3f3f,
-                        0x3f3f3f3f,
-                        0x7f7f7f7f,
-                        0x7f7f7f7f,
-                        0x7fff7fff,
-                        0x7fff7fff,
-                        0x00010001,
-                        0x00010001,
-                        0x00030003,
-                        0x00070007,
-                        0x000f000f,
-                        0x001f001f,
-                        0x003f003f,
-                        0x007f007f,
-                        0x00ff00ff,
-                        0x01ff01ff,
-                        0x03ff03ff,
-                        0x07ff07ff,
-                        0x0fff0fff,
-                        0x1fff1fff,
-                        0x3fff3fff,
-                        0x7fff7fff,
-                        0x7fff7fff,                        
-                        // 0xffff,
-                        // 0x7fff,
-                        // 0x3fff,
-                        // 0x1fff,
-                        // 0x0fff,
-                        // 0x07ff,
-                        // 0x03ff,
-                        // 0x01ff,
-                        // 0x00ff,
-                        // 0x007f,
-                        // 0x003f,
-                        // 0x001f,
-                        // 0x000f,
-                        // 0x0007,
-                        // 0x0003,
-                        // 0x0001,
-                        // 0x0001ffff,
-                        // 0x0003ffff,
-                        // 0x0007ffff,
-                        // 0x000fffff,
-                        // 0x001fffff,
-                        // 0x003fffff,
-                        // 0x007fffff,
-                        // 0x00ffffff,
-                        // 0x01ffffff,
-                        // 0x03ffffff,
-                        // 0x07ffffff,
-                        // 0x0fffffff,
-                        // 0x1fffffff,
-                        // 0x3fffffff,
-                        // 0x7fffffff,
-                        // 0x7fffffff,
-                    };
-#endif
-
     audio_buffer_t *buffer = take_audio_buffer(producer_pool, false);
     if (buffer) {
+#if USE_AUDIO_I2S
+        int base_samples = buffer->max_sample_count / I2S_OVERSAMPLING;
+        buffer->max_sample_count = base_samples;
+#endif
         if (music_generator) {
             // todo think about volume; this already has a (<< 3) in it
             music_generator(buffer);
         } else {
-            memset(buffer->buffer->bytes, 0, buffer->buffer->size);
+            memset(buffer->buffer->bytes, 0, buffer->max_sample_count * 4); // 4 bytes per sample stereo!
         }
         for(int ch=0; ch < NUM_SOUND_CHANNELS; ch++) {
             if (is_channel_playing(ch)) {
@@ -563,7 +492,7 @@ static void I_Pico_UpdateSound(void)
 
         buffer->sample_count = buffer->max_sample_count;
         if (fade_state == FS_SILENT) {
-            memset(buffer->buffer->bytes, 0, buffer->buffer->size);
+            memset(buffer->buffer->bytes, 0, buffer->max_sample_count * 4);
         } else if (fade_state != FS_NONE) {
             int16_t *samples = (int16_t *)buffer->buffer->bytes;
             int fade_step = fade_state == FS_FADE_IN ? FADE_STEP : -FADE_STEP;
@@ -584,13 +513,67 @@ static void I_Pico_UpdateSound(void)
                 }
             }
         }
-        //dahai
         int16_t *samples = (int16_t *)buffer->buffer->bytes;
 #if USE_AUDIO_I2S
-        for(int i=0;i<buffer->sample_count * 2;i+=2){
-            samples[i] = ~pwmtable[(samples[i]/1024)&31];
-            samples[i+1] = ~pwmtable[(samples[i]/1024)&31]>>16;
+        buffer->max_sample_count = base_samples * I2S_OVERSAMPLING;
+        
+#if I2S_OVERSAMPLING == 4
+        // 4x In-Place Oversampling Array Expansion
+        for(int i = buffer->sample_count - 1; i >= 0; i--) {
+            int16_t left = samples[i * 2];
+            int16_t right = samples[i * 2 + 1];
+            int32_t mono = (left + right) / 2;
+            
+            // Map -32768..32767 to 0..128 Duty Cycle (4 frames * 32bits = 128)
+            int duty = (mono + 32768) >> 9;
+            if (duty < 0) duty = 0;
+            if (duty > 128) duty = 128;
+            
+            int ones = duty;
+            uint32_t fb0 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            ones = (ones >= 32) ? ones - 32 : 0;
+            uint32_t fb1 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            ones = (ones >= 32) ? ones - 32 : 0;
+            uint32_t fb2 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            ones = (ones >= 32) ? ones - 32 : 0;
+            uint32_t fb3 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            
+            // Write 4 stereo frames (8 x 16-bit words) [i*8 .. i*8+7] backwards
+            samples[i * 8 + 6] = (int16_t)(~fb3 >> 16);
+            samples[i * 8 + 7] = (int16_t)(~fb3 & 0xFFFFU);
+            samples[i * 8 + 4] = (int16_t)(~fb2 >> 16);
+            samples[i * 8 + 5] = (int16_t)(~fb2 & 0xFFFFU);
+            samples[i * 8 + 2] = (int16_t)(~fb1 >> 16);
+            samples[i * 8 + 3] = (int16_t)(~fb1 & 0xFFFFU);
+            samples[i * 8 + 0] = (int16_t)(~fb0 >> 16);
+            samples[i * 8 + 1] = (int16_t)(~fb0 & 0xFFFFU);
         }
+#elif I2S_OVERSAMPLING == 2
+        // 2x In-Place Oversampling Array Expansion
+        for(int i = buffer->sample_count - 1; i >= 0; i--) {
+            int16_t left = samples[i * 2];
+            int16_t right = samples[i * 2 + 1];
+            int32_t mono = (left + right) / 2;
+            
+            // Map -32768..32767 to 0..64 Duty Cycle (2 frames * 32bits = 64)
+            // 0 -> 32 (50% duty cycle, speaker rests at 0 DC offset)
+            int duty = (mono + 32768) >> 10;
+            if (duty < 0) duty = 0;
+            if (duty > 64) duty = 64;
+            
+            int ones = duty;
+            uint32_t fb0 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            ones = (ones >= 32) ? ones - 32 : 0;
+            uint32_t fb1 = (ones >= 32) ? 0xFFFFFFFFU : (ones > 0 ? 0xFFFFFFFFU << (32 - ones) : 0);
+            
+            // Write 2 stereo frames (4 x 16-bit words) [i*4 .. i*4+3] backwards
+            samples[i * 4 + 2] = (int16_t)(~fb1 >> 16);
+            samples[i * 4 + 3] = (int16_t)(~fb1 & 0xFFFFU);
+            samples[i * 4 + 0] = (int16_t)(~fb0 >> 16);
+            samples[i * 4 + 1] = (int16_t)(~fb0 & 0xFFFFU);
+        }
+#endif
+        buffer->sample_count = buffer->sample_count * I2S_OVERSAMPLING;
 #endif
         give_audio_buffer(producer_pool, buffer);
 
@@ -697,7 +680,11 @@ static boolean I_Pico_InitSound(boolean _use_sfx_prefix)
     use_sfx_prefix = _use_sfx_prefix;
 #if 1 // AUDIO_I2S or AUDIO_PWM
     // todo this will likely need adjustment - maybe with IRQs/double buffer & pull from audio we can make it quite small
+#if USE_AUDIO_I2S
+    producer_pool = audio_new_producer_pool(&producer_format, 2, PICO_AUDIO_OVERSAMPLED_BUFFER_SIZE * I2S_OVERSAMPLING); // oversampling total size
+#else
     producer_pool = audio_new_producer_pool(&producer_format, 2, 1024); // todo correct size
+#endif
 #endif // AUDIO_I2S or AUDIO_PWM
 #if USE_AUDIO_I2S
     struct audio_i2s_config config = {
