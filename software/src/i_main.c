@@ -31,6 +31,9 @@
 #include "pico/multicore.h"
 #if PICO_ON_DEVICE
 #include "hardware/vreg.h"
+//dahai SDK 2.x 的 pico/stdlib.h 不再自動包含 hardware/clocks.h，
+// 底下的 set_sys_clock_khz() 需要它。
+#include "hardware/clocks.h"
 #endif
 #endif
 #if USE_PICO_NET

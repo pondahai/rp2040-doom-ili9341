@@ -469,6 +469,12 @@ if (TARGET chocolate-doom)
     )
 endif()
 
+#dahai rp2040-retro-loader 的 app linker script。指到別的路徑就改這個 cache
+# 變數，設成空字串則不套用(獨立 BOOTSEL 燒錄版)。位址須與載入器的
+# common/boot_map.h 及下面的 TINY_WAD_ADDR 保持一致。
+set(RETRO_LOADER_LD "C:/Users/Dell/Documents/GitHub/rp2040-retro-loader/app/memmap_app.ld"
+        CACHE STRING "rp2040-retro-loader app linker script (empty = standalone build)")
+
 function(add_doom_tiny SUFFIX RENDER_LIB)
     add_executable(doom_tiny${SUFFIX})
     target_link_libraries(doom_tiny${SUFFIX} PRIVATE game)
@@ -486,6 +492,12 @@ function(add_doom_tiny SUFFIX RENDER_LIB)
     if (PICO_SDK)
         pico_set_float_implementation(doom_tiny${SUFFIX} none)
         pico_set_double_implementation(doom_tiny${SUFFIX} none)
+        #dahai 連結到 rp2040-retro-loader 的 APP_BASE (0x10004000)，
+        # 前 16KB 留給載入器/跳板。設 RETRO_LOADER_LD 為空字串可回到
+        # 原本從 0x10000000 起跳的獨立燒錄版。
+        if (RETRO_LOADER_LD)
+            pico_set_linker_script(doom_tiny${SUFFIX} "${RETRO_LOADER_LD}")
+        endif()
         pico_add_extra_outputs(doom_tiny${SUFFIX})
     endif()
 
@@ -644,7 +656,9 @@ if (PICO_SDK)
             NO_USE_FINALE_BUNNY=1
     )
     target_compile_definitions(doom_tiny PRIVATE
-            TINY_WAD_ADDR=0x10042000
+            #dahai 隨韌體一起後移 16KB (0x10042000 -> 0x10046000)，
+            # 對應 rp2040-retro-loader 的 BOOT_REGION_SIZE。
+            TINY_WAD_ADDR=0x10046000
     )
     target_link_libraries(doom_tiny PRIVATE tiny_settings)
     add_doom_tiny(_nost render_newhope)
