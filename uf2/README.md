@@ -36,6 +36,11 @@
   ⚠️ 那一份**不能**搭配上面那些 `picotool load -o ...` 指令,位址對不上
   (它的韌體在 `0x10004000`、地圖檔在 `0x10046000`)。它自己就是完整的。
 
+  **2026-08-16 起那一份的預設音量調大了**(音效與音樂的預設值 8 -> 15,
+  約 +5.5dB)。DOOM 的出廠預設只有一半音量,而這個韌體沒有地方存設定,
+  選單裡調的音量每次開機都會掉回預設值 —— 所以是直接改編譯期的初始值。
+  上面那幾份資料夾裡的韌體**未包含**這個改動,仍是原本的音量。
+
   因為檔案有 4.2MB,放 Releases 而不放進版控,免得 repo 每次重編都胖一圈。
 
   ---
@@ -57,6 +62,13 @@
   ⚠️ Do **not** combine it with the `picotool load -o ...` commands above; the
   addresses don't match (its firmware is at `0x10004000`, map data at
   `0x10046000`). It is self-contained.
+
+  **As of 2026-08-16 that file is louder**: the default sound and music volumes
+  went from 8 to 15 (about +5.5dB). DOOM ships at half volume by default, and
+  this firmware has nowhere to save settings — whatever you pick in the menu is
+  back to the default on the next boot — so the compile-time initial value is
+  the only thing that matters. The firmware files in this folder do **not**
+  include the change and are still at the original volume.
 
   It lives in Releases rather than in version control because it's 4.2MB and
   would bloat the repo on every rebuild.
