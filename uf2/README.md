@@ -1,9 +1,33 @@
-  安裝方法
+  # 先看這裡:推薦用「合併版」DOOM.uf2
+
+  **推薦做法**:到
+  [Releases](../../releases/tag/retro-loader-v1) 下載 `DOOM.uf2` ——
+  **韌體與地圖檔已經包成同一份檔案**,拖進 `RPI-RP2` 一次就能玩,
+  不需要 `picotool`,也不需要 SD 卡或載入器。細節見下方
+  「另有一份「拖一次就能玩」的版本」一節。
+
+  **Recommended**: grab `DOOM.uf2` from
+  [Releases](../../releases/tag/retro-loader-v1) — firmware and map data are
+  **bundled into a single file**. Drag it onto `RPI-RP2` once and play. No
+  `picotool`, no SD card, no loader needed.
+
+  本資料夾裡的 `doom_tiny_*.uf2` 是**舊的分離式版本**:要先拖韌體、再用
+  `picotool` 另外燒地圖檔,而且**不含**後來把預設音量調大的改動。
+  除非你有特別理由(例如要用 ST7789 螢幕),否則不建議走這條路。
+
+  The `doom_tiny_*.uf2` files in this folder are the **older two-step split
+  build**: flash the firmware, then flash the map data separately with
+  `picotool`. They also do **not** include the later default-volume bump.
+  Use them only if you have a specific reason (e.g. an ST7789 panel).
+
+  ---
+
+  ## 舊的分離式安裝方法(不推薦)
 
   首先將遊戲機設置為usb上傳模式，然後根據版本選擇對應的 .uf2 檔案拖拉至遊戲機：
 
    1. 標準版 (Standard): doom_tiny.uf2
-   2. 音效修正版 (Sound Fix): doom_tiny_ILI9341_sound_fix.uf2 (推薦，包含 2x 超取樣音效、螢幕亮度提升與穩定性優化)
+   2. 音效修正版 (Sound Fix): doom_tiny_ILI9341_sound_fix.uf2 (分離式版本中較佳的一份，包含 2x 超取樣音效、螢幕亮度提升與穩定性優化)
 
   使用指令上傳地圖檔
 
@@ -75,13 +99,15 @@
 
   ---
 
+  ## Old two-step install (not recommended)
+
   Installation method
 
   First, set the game console to USB upload mode, and then drag the corresponding .uf2 to the game console based on your
   version:
 
    1. Standard Version: doom_tiny.uf2
-   2. Sound Fix Version: doom_tiny_ILI9341_sound_fix.uf2 (Recommended, includes 2x oversampling audio, brightness boost, and
+   2. Sound Fix Version: doom_tiny_ILI9341_sound_fix.uf2 (the better of the split builds, includes 2x oversampling audio, brightness boost, and
       voltage stability).
 
   Use instructions to upload map files
