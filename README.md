@@ -1,3 +1,6 @@
+👉 **要燒錄請直接用 [Releases](../../releases/tag/retro-loader-v1) 裡的合併版 `DOOM.uf2`**(韌體與地圖檔已包成同一份,拖一次就能玩),說明見 [uf2/README.md](uf2/README.md)。
+👉 **To flash, use the bundled `DOOM.uf2` in [Releases](../../releases/tag/retro-loader-v1)** (firmware + map data in one file, one drag) — see [uf2/README.md](uf2/README.md).
+
 改編自 https://github.com/kilograham/rp2040-doom
 
 感謝kilograham做了絕大部分的貢獻 他把doom源碼做了很大的改寫 讓doom可以在rp2040(樹莓派pico)上運行 我只是修改成可以在LCD(ILI9341)上顯示
