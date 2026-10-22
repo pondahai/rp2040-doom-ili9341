@@ -66,8 +66,8 @@ set(SD_SCK "10" CACHE STRING "Specify de Clock GPIO pin for the SD card")
 set(SD_MOSI "11" CACHE STRING "Select the Master Out Slave In GPIO pin for the SD card")
 set(SD_MISO "12" CACHE STRING "Select the Master In Slave Out GPIO pin for the SD card")
 
-#set(LCD_CONTROLLER "ILI9341" CACHE STRING "Select the LCD controller type")
-set(LCD_CONTROLLER "ST7789" CACHE STRING "Select the LCD controller type")
+set(LCD_CONTROLLER "ILI9341" CACHE STRING "Select the LCD controller type")
+#set(LCD_CONTROLLER "ST7789" CACHE STRING "Select the LCD controller type")
 
 set(LCD_SPI "spi0")
 set(LCD_DC "20")
